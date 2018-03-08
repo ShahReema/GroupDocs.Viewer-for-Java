@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ViewDocument extends HttpServlet {
     private static String _locales = (System.getProperty("user.dir") + "\\src\\main\\webapp\\storage\\temp\\").replace("\\", "/");
     final ReentrantLock lock = new ReentrantLock();
-    private final ConvertImageFileType _convertImageFileType = ConvertImageFileType.JPG;
+    private final int _convertImageFileType = ConvertImageFileType.JPG;
     public String _licensePath = "D:\\GroupDocs.Total.Java.lic";
     List<String> temp_cssList;
 
@@ -49,13 +49,13 @@ public class ViewDocument extends HttpServlet {
 
         try {
             result.setDocumentDescription((new FileDataJsonSerializer(fileData, new FileDataOptions())).Serialize(false));
-        } catch (ParseException x) {
+        } catch (Exception x) {
             throw new ServletException(x);
         }
 
         if (params.getUseHtmlBasedEngine()) {
             try {
-                docInfo = ViewerUtils.getViewerHtmlHandler().getDocumentInfo(new DocumentInfoOptions(params.getPath()));
+                docInfo = ViewerUtils.getViewerHtmlHandler().getDocumentInfo(params.getPath());
             } catch (Exception x) {
                 throw new ServletException(x);
             }
@@ -67,6 +67,11 @@ public class ViewDocument extends HttpServlet {
             result.setUrl(GetFileUrl(params));
             result.setPath(params.getPath());
             result.setName(params.getPath());
+            try {
+                result.setDocumentDescription((new FileDataJsonSerializer(fileData, new FileDataOptions())).Serialize(false));
+            } catch (Exception x) {
+                throw new ServletException(x);
+            }
             result.setDocType(docInfo.getDocumentType());
             result.setFileType(docInfo.getFileType());
 
@@ -78,37 +83,43 @@ public class ViewDocument extends HttpServlet {
             if (!DotNetToJavaStringHelper.isNullOrEmpty(params.getPreloadPagesCount().toString())
                     && params.getPreloadPagesCount().intValue() > 0) {
                 htmlOptions.setPageNumber(1);
-                htmlOptions.setCountPagesToConvert(params.getPreloadPagesCount().intValue());
+                htmlOptions.setCountPagesToRender(params.getPreloadPagesCount().intValue());
             }
 
             String[] cssList = null;
 
             RefObject<ArrayList<String>> tempRef_cssList = new RefObject<ArrayList<String>>(cssList);
 
-            List<PageHtml> htmlPages = GetHtmlPages(params.getPath(), htmlOptions);
-            cssList = tempRef_cssList.argValue;
+            List<PageHtml> htmlPages;
+			try {
+				htmlPages = GetHtmlPages(params.getPath(), htmlOptions);
+				cssList = tempRef_cssList.argValue;
 
-            ArrayList<String> pagesContent = new ArrayList<String>();
-            for (PageHtml page : htmlPages) {
-                pagesContent.add(page.getHtmlContent());
-            }
-            String[] htmlContent = pagesContent.toArray(new String[0]);
-            result.setPageHtml(htmlContent);
-            result.setPageCss(new String[]{String.join(" ", temp_cssList)});
+	            ArrayList<String> pagesContent = new ArrayList<String>();
+	            for (PageHtml page : htmlPages) {
+	                pagesContent.add(page.getHtmlContent());
+	            }
+	            String[] htmlContent = pagesContent.toArray(new String[0]);
+	            result.setPageHtml(htmlContent);
+	            result.setPageCss(new String[]{String.join(" ", temp_cssList)});
 
-            for (int i = 0; i < result.getPageHtml().length; i++) {
-                String html = result.getPageHtml()[i];
-                int indexOfScript = html.indexOf("script");
-                if (indexOfScript > 0) {
-                    result.getPageHtml()[i] = html.substring(0, indexOfScript);
-                }
-            }
+	            for (int i = 0; i < result.getPageHtml().length; i++) {
+	                String html = result.getPageHtml()[i];
+	                int indexOfScript = html.indexOf("script");
+	                if (indexOfScript > 0) {
+	                    result.getPageHtml()[i] = html.substring(0, indexOfScript);
+	                }
+	            }
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
         } else {
 
 
             try {
-                docInfo = ViewerUtils.getViewerImageHandler().getDocumentInfo(new DocumentInfoOptions(params.getPath()));
+                docInfo = ViewerUtils.getViewerImageHandler().getDocumentInfo(params.getPath());
             } catch (Exception x) {
                 throw new ServletException(x);
             }
@@ -231,7 +242,7 @@ public class ViewDocument extends HttpServlet {
                 false, false);
     }
 
-    private List<PageHtml> GetHtmlPages(String filePath, HtmlOptions htmlOptions) throws ServletException, IOException {
+    private List<PageHtml> GetHtmlPages(String filePath, HtmlOptions htmlOptions) throws Exception {
 
         List<PageHtml> htmlPages = null;
         try {
@@ -243,21 +254,15 @@ public class ViewDocument extends HttpServlet {
 
         for (PageHtml page : htmlPages) {
 
-            int indexOfBodyOpenTag = page.getHtmlContent().indexOf("<body>");
-
-            if (indexOfBodyOpenTag > 0) {
-                page.setHtmlContent(page.getHtmlContent().substring(indexOfBodyOpenTag + "<body>".length()));
+            String fullHtml = page.getHtmlContent();
+            String strippedHtml = "";
+            if (fullHtml.indexOf("</title>") > 0 && fullHtml.indexOf("</head>") > 0) {
+                strippedHtml += fullHtml.substring(fullHtml.indexOf("</title>") + "</title>".length(), fullHtml.indexOf("</head>"));
             }
-
-            int indexOfBodyCloseTag = page.getHtmlContent().indexOf("</body>");
-
-            if (indexOfBodyCloseTag > 0) {
-                page.setHtmlContent(page.getHtmlContent().substring(0, indexOfBodyCloseTag));
+            if (fullHtml.indexOf("<body>") > 0 && fullHtml.indexOf("</body>") > 0) {
+                strippedHtml += fullHtml.substring(fullHtml.indexOf("<body>") + "<body>".length(), fullHtml.indexOf("</body>"));
             }
-
-            /////////////////////////
-
-            List<HtmlResource> test = page.getHtmlResources();
+            page.setHtmlContent(strippedHtml);
 
             for (HtmlResource resource : page.getHtmlResources()) {
 

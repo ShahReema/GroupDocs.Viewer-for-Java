@@ -12,7 +12,8 @@ import java.util.Date;
 import com.microsoft.azure.storage.blob.*;
 import com.microsoft.azure.storage.*;
 import com.groupdocs.viewer.domain.FileDescription;
-import com.groupdocs.viewer.domain.options.FileTreeOptions;
+import com.groupdocs.viewer.domain.cache.CachedDocumentDescription;
+import com.groupdocs.viewer.domain.options.FileListOptions;
 import com.groupdocs.viewer.exception.GroupDocsException;
 import com.groupdocs.viewer.handler.input.IInputDataHandler;
 
@@ -88,8 +89,7 @@ public class AzureInputDataHandler implements IInputDataHandler {
         return fileDescription.getLastModificationDate();
     }
  
-    @Override
-    public List<FileDescription> loadFileTree(FileTreeOptions fileTreeOptions) {
+    public List<FileDescription> loadFileTree(FileListOptions fileTreeOptions) {
         try
         {
             String path = GetNormalizedBlobName(fileTreeOptions.getPath());
@@ -137,8 +137,24 @@ public class AzureInputDataHandler implements IInputDataHandler {
  
     private Date getDateTimeOrEmptyDate(Date dateTimeOffset)
     {
-        Date emptyDate = new Date(1, 1, 1);
+        Date emptyDate = new Date();
         return dateTimeOffset != null ? dateTimeOffset : emptyDate;
     }
+
+	
+	public void saveDocument(CachedDocumentDescription arg0, InputStream arg1) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void addFile(String arg0, InputStream arg1) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public List<FileDescription> getEntities(String arg0) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
 //ExEnd: AzureInputDataHandler
